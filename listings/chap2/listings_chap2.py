@@ -5,8 +5,8 @@ from churnmodels import Subscription, Event
 from churnsim2 import get_engine
 import pandas as pd
 
-# engine = get_engine()
-engine = create_engine(f"sqlite:///c:/tmp/churn2.db")
+engine = get_engine()
+# engine = create_engine(f"sqlite:///c:/tmp/churn2.db")
 
 
 def run_2_1():

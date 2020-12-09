@@ -12,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from sqlalchemy import create_engine, func, event
 from sqlalchemy.orm import sessionmaker
 from tqdm import tnrange, tqdm_notebook, tqdm
-
+#
 from behavior import FatTailledBehaviorModel
 from churnmodels import create_tables, create_lookups, Account, Subscription, Event
 from customer import Customer
