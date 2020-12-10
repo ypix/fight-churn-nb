@@ -89,10 +89,10 @@ class GaussianBehaviorModel(BehaviorModel):
             self.scale_correlation_to_covariance()
 
         # Save to a csv
-        save_path = '../../../fight-churn-output/' + name + '/'
-        os.makedirs(save_path, exist_ok=True)
-        copy_path = save_path + name + '_simulation_model.csv'
-        copyfile(model_path, copy_path)
+        # save_path = '../../../fight-churn-output/' + name + '/'
+        # os.makedirs(save_path, exist_ok=True)
+        # copy_path = save_path + name + '_simulation_model.csv'
+        # copyfile(model_path, copy_path)
 
         # For debugging
         # np.savetxt('../conf/'+name+ '_behavior_cov.csv', self.behave_cov,delimiter=',')

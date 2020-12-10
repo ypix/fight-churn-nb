@@ -1,9 +1,10 @@
 from distutils.core import setup
+import churnmodels
 
 setup(
-    name='fight-churn-nb',
-    version='',
-    packages=[''],
+    name='churnmodels',
+    version=churnmodels.__version__,
+    packages=['churnmodels'],
     url='',
     license='',
     author='Kai',

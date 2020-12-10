@@ -34,7 +34,14 @@ def get_engine():
         else:
             sqlitefile = os.getenv("SQLITE_FILE")
             engine = create_engine(f"sqlite:///{sqlitefile}")
-            # print(f"created sqlite file {sqlitefile}")
+            print(f"created sqlite file {sqlitefile}")
+
+        @event.listens_for(engine, "begin")
+        def do_begin(conn):
+            # emit our own BEGIN
+            # conn.execute("BEGIN IMMEDIATE")
+            conn.execute("BEGIN TRANSACTION")
+
     elif dialect == "postgres":
         # for postgres we need a schema
         schema = required_envvar("CHURN_DB_SCHEMA", "Please set the environment variable CHURN_DB_SCHEMA for postgres")
@@ -45,12 +52,6 @@ def get_engine():
 
         engine = create_engine(f"postgresql://{user}:{pw}@localhost:5432/{dbname}")
 
-    if os.getenv("CHURN_DB_DIALECT") == "sqlite":
-        @event.listens_for(engine, "begin")
-        def do_begin(conn):
-            # emit our own BEGIN
-            # conn.execute("BEGIN IMMEDIATE")
-            conn.execute("BEGIN TRANSACTION")
 
         pass
 
@@ -92,7 +93,7 @@ class ChurnSimulation(ChurnSimulationBase):
         self.model_list = []
         for b in behavior_versions:
             version = b[(b.find(self.model_name) + len(self.model_name) + 1):-4]
-            if version in ('utility', 'population', 'country'):
+            if version in ('utility','population','country','plans'):
                 continue
             behave_mod = FatTailledBehaviorModel(self.model_name, seed, version)
             self.behavior_models[behave_mod.version] = behave_mod
@@ -103,6 +104,7 @@ class ChurnSimulation(ChurnSimulationBase):
         self.util_mod.setChurnScale(self.behavior_models, self.population_percents)
         self.population_picker = np.cumsum(self.population_percents)
 
+        self.plans = pd.read_csv('../conf/'+self.model_name + '_plans.csv')
         self.country_lookup = pd.read_csv('../conf/' + self.model_name + '_country.csv')
 
         self.subscription_count = 0
@@ -164,9 +166,8 @@ class ChurnSimulation(ChurnSimulationBase):
             customer0.delta_subscriptions = len(customer0.subscriptions)
             customer0.delta_events = len(customer0.events)
 
-            sys.stdout.flush()
+            # showing the progress bar...
             pbar1.update(1)
-            sys.stdout.flush()
             return customer0
 
         customers_sim = mainloop_threading(substep, items1)
@@ -174,7 +175,7 @@ class ChurnSimulation(ChurnSimulationBase):
         total_events = sum(x.delta_events for x in customers_sim)
         self.subscription_count += total_subscriptions
 
-        options = {"product": self.model_name, "mrr": 9.99, "bill_period_months": 1}
+        options = {"product": self.model_name, "bill_period_months": 1}
         assign_customer_pre(customers_sim, engine, options=options)
 
 
@@ -198,10 +199,8 @@ def assign_customer_pre(customers, engine, options):
     for customer in customers:
         df = df.append(
             [{"channel": customer.channel, "date_of_birth": customer.date_of_birth, "country": customer.country}])
-        # progress:
-        sys.stdout.flush()
+        # showing the progress bar...
         pbar0.update(1)
-        sys.stdout.flush()
 
     # getting the last id (primary key)
     maxidx = session.query(func.max(Account.id)).one()[0] or 0
@@ -226,9 +225,10 @@ def assign_customer_pre(customers, engine, options):
         for subs in customer.subscriptions:
             df_s0.append({
                 "account_id": account_id, "start_date": subs[0], "end_date": subs[1],
-                "product": options["product"], "mrr": options["mrr"],
+                "product": options["product"], "mrr": subs[2],
                 "bill_period_months": options["bill_period_months"]
             })
+            # showing the progress bar...
             pbar1.update(1)
         for subs in customer.events:
             df_e0.append(
@@ -236,6 +236,7 @@ def assign_customer_pre(customers, engine, options):
                     "account_id": account_id, "event_time": subs[0],
                     "event_type_id": subs[1] + 1
                 })
+            # showing the progress bar...
             pbar1.update(1)
         index += 1
 
@@ -294,7 +295,7 @@ def _beh_generate_customer(start_of_month, log_means, behave_cov, channel_name):
 
 
 if __name__ == '__main__':
-    churnmodel = "socialnet7"
+    churnmodel = os.getenv("CHURN_MODEL")
     start = date(2020, 1, 1)
     end = date(2020, 6, 1)
     init = 10000
