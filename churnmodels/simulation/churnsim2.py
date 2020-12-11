@@ -23,73 +23,6 @@ from churnmodels.simulation.churnsim import ChurnSimulation as ChurnSimulationBa
 from churnmodels.conf import folder as conf_folder
 
 
-def get_engine():
-    """
-    this routine create the simulation data base
-    it is controlled by envirnoment variables
-    :return:
-    :rtype:
-    """
-    dialect = os.getenv("CHURN_DB_DIALECT") or None
-
-    # print(f"setting up DB for dialect {dialect}")
-    engine_default_uri = f"sqlite:///:memory:"
-    engine = create_engine(f"sqlite:///:memory:")
-    if dialect is None or dialect == "sqlite":
-        if "SQLITE_FILE" not in os.environ:
-            # the sqlite memory db is the default
-            pass
-        else:
-            # if a file is given in the env-var SQLITE_FILE ...
-            sqlitefile = os.getenv("SQLITE_FILE")
-            engine = create_engine(f"sqlite:///{sqlitefile}")
-            # print(f"created sqlite file {sqlitefile}")
-
-        # adding this listener will speed up the sqlite transacrions
-        @event.listens_for(engine, "begin")
-        def do_begin(conn):
-            # emit our own BEGIN
-            # conn.execute("BEGIN IMMEDIATE")
-            conn.execute("BEGIN TRANSACTION")
-    # Postgres
-    elif dialect == "postgres":
-        # for postgres we need a schema
-        schema = required_envvar("CHURN_DB_SCHEMA", "Please set the environment variable CHURN_DB_SCHEMA for postgres")
-        # ... and the user credentials
-        user = required_envvar("CHURN_DB_USER", "Please set the environment variable CHURN_DB_USER for postgres")
-        pw = required_envvar("CHURN_DB_PASS", "Please set the environment variable CHURN_DB_PASS for postgres")
-        dbname = required_envvar("CHURN_DB", "Please set the database name in CHURN_DB for postgres")
-
-        default_database_uri = f"postgresql://{user}:{pw}@localhost:5432/postgres"
-        database_uri = f"postgresql://{user}:{pw}@localhost:5432/{dbname}"
-
-        engine = create_engine(database_uri)
-
-        # check if db exists
-        try:
-            engine.connect()
-            sql = "select schema_name from information_schema.schemata;"
-            engine.execute(sql)
-        except OperationalError:
-            # Switch database component of the uri
-            engine = create_engine(default_database_uri)
-
-    # returning the engine object
-    return engine
-
-
-def setup_all(modelname):
-    """
-    creating the data base
-    :param modelname:
-    :type modelname:
-    :return:
-    :rtype:
-    """
-    engine = get_engine()
-    create_tables(engine)  # if tables exist, they will all be dropped
-    create_lookups(engine, modelname)
-    return engine
 
 
 class ChurnSimulation(ChurnSimulationBase):
@@ -337,6 +270,74 @@ def _beh_generate_customer(start_of_month, log_means, behave_cov, channel_name):
     new_customer = Customer(customer_rates, channel_name=channel_name, start_of_month=start_of_month)
     # print(customer_rates)
     return new_customer
+
+def get_engine():
+    """
+    this routine create the simulation data base
+    it is controlled by envirnoment variables
+    :return:
+    :rtype:
+    """
+    dialect = os.getenv("CHURN_DB_DIALECT") or None
+
+    # print(f"setting up DB for dialect {dialect}")
+    engine_default_uri = f"sqlite:///:memory:"
+    engine = create_engine(f"sqlite:///:memory:")
+    if dialect is None or dialect == "sqlite":
+        if "SQLITE_FILE" not in os.environ:
+            # the sqlite memory db is the default
+            pass
+        else:
+            # if a file is given in the env-var SQLITE_FILE ...
+            sqlitefile = os.getenv("SQLITE_FILE")
+            engine = create_engine(f"sqlite:///{sqlitefile}")
+            # print(f"created sqlite file {sqlitefile}")
+
+        # adding this listener will speed up the sqlite transacrions
+        @event.listens_for(engine, "begin")
+        def do_begin(conn):
+            # emit our own BEGIN
+            # conn.execute("BEGIN IMMEDIATE")
+            conn.execute("BEGIN TRANSACTION")
+    # Postgres
+    elif dialect == "postgres":
+        # for postgres we need a schema
+        schema = required_envvar("CHURN_DB_SCHEMA", "Please set the environment variable CHURN_DB_SCHEMA for postgres")
+        # ... and the user credentials
+        user = required_envvar("CHURN_DB_USER", "Please set the environment variable CHURN_DB_USER for postgres")
+        pw = required_envvar("CHURN_DB_PASS", "Please set the environment variable CHURN_DB_PASS for postgres")
+        dbname = required_envvar("CHURN_DB", "Please set the database name in CHURN_DB for postgres")
+
+        default_database_uri = f"postgresql://{user}:{pw}@localhost:5432/postgres"
+        database_uri = f"postgresql://{user}:{pw}@localhost:5432/{dbname}"
+
+        engine = create_engine(database_uri)
+
+        # check if db exists
+        try:
+            engine.connect()
+            sql = "select schema_name from information_schema.schemata;"
+            engine.execute(sql)
+        except OperationalError:
+            # Switch database component of the uri
+            engine = create_engine(default_database_uri)
+
+    # returning the engine object
+    return engine
+
+
+def setup_all(modelname):
+    """
+    creating the data base
+    :param modelname:
+    :type modelname:
+    :return:
+    :rtype:
+    """
+    engine = get_engine()
+    create_tables(engine)  # if tables exist, they will all be dropped
+    create_lookups(engine, modelname)
+    return engine
 
 
 def simulate(options={}):
