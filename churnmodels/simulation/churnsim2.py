@@ -94,7 +94,7 @@ def setup_all(modelname):
 
 class ChurnSimulation(ChurnSimulationBase):
 
-    def __init__(self, model, start, end, init_customers, seed, engine):
+    def __init__(self, model, start, end, init_customers, seed, engine, schema=None):
         '''
         Creates the behavior/utility model objects, sets internal variables to prepare for simulation, and creates
         the database connection
@@ -109,6 +109,7 @@ class ChurnSimulation(ChurnSimulationBase):
 
         self.model_name = model
         self.engine = engine
+        self.schema = schema
         self.start_date = start
         self.end_date = end
         self.init_customers = init_customers
@@ -141,7 +142,7 @@ class ChurnSimulation(ChurnSimulationBase):
 
         self.subscription_count = 0
         # the data base engine canbe sqlite, postgres, ... everything that sqlalchemy knows
-        self.engine = engine
+        # self.engine = engine
 
     def run_simulation(self):
         '''
@@ -208,18 +209,30 @@ class ChurnSimulation(ChurnSimulationBase):
         self.subscription_count += total_subscriptions
 
         options = {"product": self.model_name, "bill_period_months": 1}
-        assign_customer_pre(customers_sim, self.engine, options=options)
+        assign_customer_pre(customers_sim, self.engine, self.schema, options=options)
 
 
-def assign_customer_pre(customers, engine, options):
+def assign_customer_pre(customers, engine, schema, options):
     """
-    putting the simulated data into the database
+    Putting the simulated data into the database
+    customers are completely stored in an array of Python objects
+
+    :param customers:
+    :type customers: array of Customer
+    :param engine:
+    :type engine:
+    :param options:
+    :type options:
+    :return:
+    :rtype:
+    """
+    """
     :arg
     """
     session = sessionmaker(bind=engine)()
 
     n_to_create = len(customers)
-    print()
+
     pbar0 = tqdm(total=n_to_create, desc="Writing Accounts", ascii=True, position=0,
                  bar_format="{l_bar}{bar:50}{r_bar}{bar:-10b}")
 
@@ -274,7 +287,7 @@ def assign_customer_pre(customers, engine, options):
 
     # accounts
     df.index = pd.RangeIndex(maxidx + 1, maxidx + 1 + len(df.index))
-    df.to_sql("account", engine, if_exists="append", index=False)
+    df.to_sql("account", engine, schema=schema, if_exists="append", index=False)
     # subscriptions & events
     df_s = pd.DataFrame({
         'account_id': pd.Series([], dtype='int'),
@@ -293,8 +306,8 @@ def assign_customer_pre(customers, engine, options):
     df_e.index = pd.RangeIndex(maxidxe + 1, maxidxe + 1 + len(df_e.index))
     db_opts = {"index": False, "chunksize": 10000, "if_exists": "append"}
     # storing into the DB (by the help of pandas)
-    df_s.to_sql("subscription", engine, **db_opts)
-    df_e.to_sql("event", engine, **db_opts)
+    df_s.to_sql("subscription", engine, schema=schema, **db_opts)
+    df_e.to_sql("event", engine, schema=schema, **db_opts)
     session.commit()
     return customers
 
@@ -327,12 +340,14 @@ def _beh_generate_customer(start_of_month, log_means, behave_cov, channel_name):
 
 
 def simulate(options={}):
+    schema = os.getenv("CHURN_DB_SCHEMA") if os.getenv("CHURN_DB_DIALECT") == "postgres" else None
     parameters = {
         "model": os.getenv("CHURN_MODEL") or "biznet1",
         "start": date(2020, 1, 1),
         "end": date(2020, 6, 1),
         "seed": 5432,
         "init_customers": 100,
+        "schema": schema,
     }
     for key, val in options.items():
         if key in parameters:
@@ -345,6 +360,7 @@ def simulate(options={}):
 
 if __name__ == '__main__':
     churnmodel = os.getenv("CHURN_MODEL")
+    schema = os.getenv("CHURN_DB_SCHEMA") if os.getenv("CHURN_DB_DIALECT") == "postgres" else None
     start = date(2020, 1, 1)
     end = date(2020, 6, 1)
     init_customers = 10000
@@ -352,5 +368,5 @@ if __name__ == '__main__':
     random_seed = 5432
     engine = setup_all(churnmodel)
 
-    churn_sim = ChurnSimulation(churnmodel, start, end, init_customers, random_seed, engine)
+    churn_sim = ChurnSimulation(churnmodel, start, end, init_customers, random_seed, engine, schema)
     churn_sim.run_simulation()

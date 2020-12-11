@@ -11,16 +11,16 @@ class Base(object):
     pass
 
 
+glob_schema= os.getenv("CHURN_DB_SCHEMA") or "public"
 if "CHURN_DB_SCHEMA" in os.environ and os.getenv("CHURN_DB_DIALECT") != "sqlite":
-    schema = os.getenv("CHURN_DB_SCHEMA") or "public"
-    print(f"postgres schema is {schema}")
-    setattr(Base, "__table_args__", {"schema": schema})
+    # print(f"postgres schema is {glob_schema}")
+    setattr(Base, "__table_args__", {"schema": glob_schema})
 
 Base = declarative_base(cls=Base)
 
 if os.getenv("CHURN_DB_DIALECT") == "postgres":
-    schema = os.getenv("CHURN_DB_SCHEMA")
-    event.listen(Base.metadata, 'before_create', DDL(f"CREATE SCHEMA IF NOT EXISTS {schema}"))
+    Base.metadata.schema=glob_schema
+    event.listen(Base.metadata, 'before_create', DDL(f"CREATE SCHEMA IF NOT EXISTS {glob_schema}"))
 
 
 class Account(Base):
