@@ -1,7 +1,28 @@
 # fight-churn-nb
 
-Look for the original code by Carl Gold at
+This repository contains Python code on the book
+"fight churn with data" by Carl Gold. 
+
+The repository refers to the original code on github
 * https://github.com/carl24k/fight-churn
 
-This Repository shows howto to create simulation data with sqlalchemy and pandas and the base classes from Carl's code.
+The creation of simulation data on churn behavior is implemented by means of the following pPython libraries:
+* SQLAlchemy
+* pandas
+* jupyter lab
+
+It is further shown how to store the data into a SQLite or Postgres data base.
+
+## Prerequisites
+### Creating a python environment (anaconda)
+
+create an anaconda environment by running the following command in Anaconda PowerShell or DOS Terminal.
+> conda create -n fightchurn -f requirements.txt  
+
+### Building the fightchurn package
+
+
+
+
+
 

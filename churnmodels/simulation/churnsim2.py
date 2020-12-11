@@ -1,47 +1,57 @@
 import concurrent.futures
 import glob
 import os
-import sys
-from datetime import date, timedelta
+from datetime import date
 from math import ceil
 
 import pandas as pd
 import numpy as np
-import random
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import create_engine, func, event
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
-from tqdm import tnrange, tqdm_notebook, tqdm
+from tqdm import tqdm
 #
-from behavior import FatTailledBehaviorModel
-from churnmodels import create_tables, create_lookups, Account, Subscription, Event
-from customer import Customer
-from utility import UtilityModel
+from churnmodels.schema import create_tables, create_lookups, Account, Subscription, Event
+from churnmodels.simulation.customer import Customer
+# from churnmodels.simulation.utility import UtilityModel
+from churnmodels.simulation.utility2 import UtilityModel
 
-from helpers import required_envvar
-from churnsim import ChurnSimulation as ChurnSimulationBase
+from churnmodels.helpers import required_envvar
+from churnmodels.simulation.behavior2 import FatTailledBehaviorModel
+from churnmodels.simulation.churnsim import ChurnSimulation as ChurnSimulationBase
+from churnmodels.conf import folder as conf_folder
 
 
 def get_engine():
+    """
+    this routine create the simulation data base
+    it is controlled by envirnoment variables
+    :return:
+    :rtype:
+    """
     dialect = os.getenv("CHURN_DB_DIALECT") or None
 
     # print(f"setting up DB for dialect {dialect}")
+    engine_default_uri = f"sqlite:///:memory:"
     engine = create_engine(f"sqlite:///:memory:")
     if dialect is None or dialect == "sqlite":
         if "SQLITE_FILE" not in os.environ:
             # the sqlite memory db is the default
             pass
         else:
+            # if a file is given in the env-var SQLITE_FILE ...
             sqlitefile = os.getenv("SQLITE_FILE")
             engine = create_engine(f"sqlite:///{sqlitefile}")
-            print(f"created sqlite file {sqlitefile}")
+            # print(f"created sqlite file {sqlitefile}")
 
+        # adding this listener will speed up the sqlite transacrions
         @event.listens_for(engine, "begin")
         def do_begin(conn):
             # emit our own BEGIN
             # conn.execute("BEGIN IMMEDIATE")
             conn.execute("BEGIN TRANSACTION")
-
+    # Postgres
     elif dialect == "postgres":
         # for postgres we need a schema
         schema = required_envvar("CHURN_DB_SCHEMA", "Please set the environment variable CHURN_DB_SCHEMA for postgres")
@@ -50,17 +60,34 @@ def get_engine():
         pw = required_envvar("CHURN_DB_PASS", "Please set the environment variable CHURN_DB_PASS for postgres")
         dbname = required_envvar("CHURN_DB", "Please set the database name in CHURN_DB for postgres")
 
-        engine = create_engine(f"postgresql://{user}:{pw}@localhost:5432/{dbname}")
+        default_database_uri = f"postgresql://{user}:{pw}@localhost:5432/postgres"
+        database_uri = f"postgresql://{user}:{pw}@localhost:5432/{dbname}"
 
+        engine = create_engine(database_uri)
 
-        pass
+        # check if db exists
+        try:
+            engine.connect()
+            sql = "select schema_name from information_schema.schemata;"
+            engine.execute(sql)
+        except OperationalError:
+            # Switch database component of the uri
+            engine = create_engine(default_database_uri)
 
+    # returning the engine object
     return engine
 
 
 def setup_all(modelname):
+    """
+    creating the data base
+    :param modelname:
+    :type modelname:
+    :return:
+    :rtype:
+    """
     engine = get_engine()
-    create_tables(engine)
+    create_tables(engine)  # if tables exist, they will all be dropped
     create_lookups(engine, modelname)
     return engine
 
@@ -88,24 +115,29 @@ class ChurnSimulation(ChurnSimulationBase):
         self.monthly_growth_rate = 0.1
 
         self.util_mod = UtilityModel(self.model_name)
-        behavior_versions = glob.glob('../conf/' + self.model_name + '_*.csv')
+
+        # path = '../conf/'
+        path = conf_folder + '/'
+        # behavior_versions = glob.glob('../conf/' + self.model_name + '_*.csv')
+        behavior_versions = glob.glob(path + self.model_name + '_*.csv')
         self.behavior_models = {}
         self.model_list = []
         for b in behavior_versions:
             version = b[(b.find(self.model_name) + len(self.model_name) + 1):-4]
-            if version in ('utility','population','country','plans'):
+            if version in ('utility', 'population', 'country', 'plans'):
                 continue
             behave_mod = FatTailledBehaviorModel(self.model_name, seed, version)
             self.behavior_models[behave_mod.version] = behave_mod
             self.model_list.append(behave_mod)
 
         if len(self.behavior_models) > 1:
-            self.population_percents = pd.read_csv('../conf/' + self.model_name + '_population.csv', index_col=0)
+            # self.population_percents = pd.read_csv('../conf/' + self.model_name + '_population.csv', index_col=0)
+            self.population_percents = pd.read_csv(path + '/' + self.model_name + '_population.csv', index_col=0)
         self.util_mod.setChurnScale(self.behavior_models, self.population_percents)
         self.population_picker = np.cumsum(self.population_percents)
 
-        self.plans = pd.read_csv('../conf/'+self.model_name + '_plans.csv')
-        self.country_lookup = pd.read_csv('../conf/' + self.model_name + '_country.csv')
+        self.plans = pd.read_csv(path + '/' + self.model_name + '_plans.csv')
+        self.country_lookup = pd.read_csv(path + '/' + self.model_name + '_country.csv')
 
         self.subscription_count = 0
         # the data base engine canbe sqlite, postgres, ... everything that sqlalchemy knows
@@ -113,7 +145,7 @@ class ChurnSimulation(ChurnSimulationBase):
 
     def run_simulation(self):
         '''
-        Simulation main function. First it prepares the database by truncating any old events and subscriptions, and
+        Simulation test function. First it prepares the database by truncating any old events and subscriptions, and
         inserting the event types into the database.  Next it creeates the initial customers by calling
         create_customers_for_month, and then it advances month by month adding new customers (also using
         create_customers_for_month.)  The number of new customers for each month is determined from the growth rate.
@@ -176,7 +208,7 @@ class ChurnSimulation(ChurnSimulationBase):
         self.subscription_count += total_subscriptions
 
         options = {"product": self.model_name, "bill_period_months": 1}
-        assign_customer_pre(customers_sim, engine, options=options)
+        assign_customer_pre(customers_sim, self.engine, options=options)
 
 
 def assign_customer_pre(customers, engine, options):
@@ -294,14 +326,31 @@ def _beh_generate_customer(start_of_month, log_means, behave_cov, channel_name):
     return new_customer
 
 
+def simulate(options={}):
+    parameters = {
+        "model": os.getenv("CHURN_MODEL") or "biznet1",
+        "start": date(2020, 1, 1),
+        "end": date(2020, 6, 1),
+        "seed": 5432,
+        "init_customers": 100,
+    }
+    for key, val in options.items():
+        if key in parameters:
+            parameters[key] = options[key]
+    engine = setup_all(parameters["model"])
+
+    churn_sim = ChurnSimulation(engine=engine, **parameters)
+    churn_sim.run_simulation()
+
+
 if __name__ == '__main__':
     churnmodel = os.getenv("CHURN_MODEL")
     start = date(2020, 1, 1)
     end = date(2020, 6, 1)
-    init = 10000
+    init_customers = 10000
 
     random_seed = 5432
     engine = setup_all(churnmodel)
 
-    churn_sim = ChurnSimulation(churnmodel, start, end, init, random_seed, engine)
+    churn_sim = ChurnSimulation(churnmodel, start, end, init_customers, random_seed, engine)
     churn_sim.run_simulation()

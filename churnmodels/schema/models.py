@@ -1,9 +1,10 @@
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, Date, DateTime, Float, Boolean
+from sqlalchemy import Column, Integer, String, Date, DateTime, Float, Boolean, event
 import pandas as pd
 import os
 
+from sqlalchemy.sql.ddl import CreateSchema, DDL
 
 
 class Base(object):
@@ -11,9 +12,15 @@ class Base(object):
 
 
 if "CHURN_DB_SCHEMA" in os.environ and os.getenv("CHURN_DB_DIALECT") != "sqlite":
-    setattr(Base, "__table_args__", {"schema": os.getenv("CHURN_DB_SCHEMA")})
+    schema = os.getenv("CHURN_DB_SCHEMA") or "public"
+    print(f"postgres schema is {schema}")
+    setattr(Base, "__table_args__", {"schema": schema})
 
 Base = declarative_base(cls=Base)
+
+if os.getenv("CHURN_DB_DIALECT") == "postgres":
+    schema = os.getenv("CHURN_DB_SCHEMA")
+    event.listen(Base.metadata, 'before_create', DDL(f"CREATE SCHEMA IF NOT EXISTS {schema}"))
 
 
 class Account(Base):
@@ -145,7 +152,6 @@ class Subscription(Base):
 
 #########################
 def create_tables(engine):
-
     metadata = Base.metadata
     metadata.bind = engine
     try:
@@ -160,11 +166,14 @@ def create_lookups(engine, modelname):
     maing lookup tables
     :arg
     """
-    path = "../conf"
+    from churnmodels.conf import folder as path
+
     prefix = modelname
     tbl2stats = {
         "event_type": {"statsfile": "utility", "col_name": "event_type_name", "class_name": "EventType"}
     }
+
+    import churnmodels.conf
 
     Session = sessionmaker()
     Session.configure(bind=engine)

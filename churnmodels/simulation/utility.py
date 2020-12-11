@@ -1,10 +1,10 @@
 
 import pandas as pd
 import numpy as np
-from math import log, exp
+from math import exp
 from random import uniform
 
-from customer import Customer
+from churnmodels.simulation.customer import Customer
 
 class UtilityModel:
 

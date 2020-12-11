@@ -2,10 +2,8 @@
 
 import pandas as pd
 import numpy as np
-import os
-from shutil import copyfile
 
-from customer import Customer
+from churnmodels.simulation.customer import Customer
 
 def is_pos_def(x):
     '''
@@ -23,7 +21,7 @@ class BehaviorModel:
 
     def generate_customer(self):
         '''
-        This is the main result expected of the behaviora model: produce customers that can be simulated.
+        This is the test result expected of the behaviora model: produce customers that can be simulated.
         Implemented by sub-classes, so this definition serves as an interface definition.
         :return:
         '''

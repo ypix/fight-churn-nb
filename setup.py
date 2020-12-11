@@ -1,10 +1,13 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
 import churnmodels
+
+print(find_packages())
 
 setup(
     name='churnmodels',
     version=churnmodels.__version__,
-    packages=['churnmodels'],
+    packages=find_packages(),
+    include_package_data=True,
     url='',
     license='',
     author='Kai',

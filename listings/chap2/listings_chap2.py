@@ -1,8 +1,8 @@
-from sqlalchemy import create_engine, func, or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 
-from churnmodels import Subscription, Event
-from churnsim2 import get_engine
+from churnmodels import Subscription
+from churnmodels.simulation.churnsim2 import get_engine
 import pandas as pd
 
 engine = get_engine()

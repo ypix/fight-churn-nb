@@ -1,5 +1,5 @@
 
-from datetime import date, timedelta, datetime
+from datetime import date, timedelta
 from dateutil.relativedelta import *
 import random
 from postgres import Postgres
@@ -11,9 +11,8 @@ import tempfile
 import pandas as pd
 import numpy as np
 
-from customer import Customer
-from behavior import GaussianBehaviorModel, FatTailledBehaviorModel
-from utility import UtilityModel
+from churnmodels.simulation.behavior import FatTailledBehaviorModel
+from churnmodels.simulation.utility import UtilityModel
 import psycopg2 as post
 
 
@@ -200,7 +199,7 @@ class ChurnSimulation:
 
     def run_simulation(self):
         '''
-        Simulation main function. First it prepares the database by truncating any old events and subscriptions, and
+        Simulation test function. First it prepares the database by truncating any old events and subscriptions, and
         inserting the event types into the database.  Next it creeates the initial customers by calling
         create_customers_for_month, and then it advances month by month adding new customers (also using
         create_customers_for_month.)  The number of new customers for each month is determined from the growth rate.

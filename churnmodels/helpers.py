@@ -2,7 +2,18 @@ import os
 import sys
 
 
+
 def required_envvar(envvar, errtext):
+    """
+    return the environment variable envvar.
+    If not given print error text and exit.
+    :param envvar:
+    :type envvar:
+    :param errtext:
+    :type errtext:
+    :return:
+    :rtype:
+    """
     if envvar not in os.environ:
         print(errtext)
         exit()
