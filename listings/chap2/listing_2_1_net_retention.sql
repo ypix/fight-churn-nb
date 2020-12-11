@@ -1,8 +1,7 @@
 with 
 date_range as (    
-	--select  '%from_yyyy-mm-dd'::date as start_date, '%to_yyyy-mm-dd'::date as end_date
-	select '2020-03-01'::date as start_date, '2020-04-01'::date as end_date
-),
+	select  '%from_yyyy-mm-dd'::date as start_date, '%to_yyyy-mm-dd'::date as end_date
+), 
 start_accounts as    
 (
 	select  account_id, sum (mrr) as total_mrr    
