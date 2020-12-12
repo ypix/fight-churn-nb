@@ -5,6 +5,7 @@ from churnmodels.simulation.customer import Customer
 import pandas as pd
 import numpy as np
 
+
 class GaussianBehaviorModel(GaussianBehaviorModelBase):
 
     def __init__(self, name, random_seed=None, version='model'):
@@ -42,18 +43,20 @@ class GaussianBehaviorModel(GaussianBehaviorModelBase):
         if corr_scale:
             self.scale_correlation_to_covariance()
 
+
+
 class FatTailledBehaviorModel(GaussianBehaviorModel):
 
-    def __init__(self,name,random_seed=None,version=None):
+    def __init__(self, name, random_seed=None, version=None):
         self.exp_base = 1.6
         self.log_fun = lambda x: np.log(x) / np.log(self.exp_base)
-        self.exp_fun = lambda x: np.power(self.exp_base,x)
+        self.exp_fun = lambda x: np.power(self.exp_base, x)
 
-        super(FatTailledBehaviorModel,self).__init__(name,random_seed,version)
+        super(FatTailledBehaviorModel, self).__init__(name, random_seed, version)
 
     def scale_correlation_to_covariance(self):
-        self.log_means=self.log_fun(self.behave_means)
-        rectified_means =np.array([max(m,0.0) for m in self.log_means])
+        self.log_means = self.log_fun(self.behave_means)
+        rectified_means = np.array([max(m, 0.0) for m in self.log_means])
         # print('Scaling correlation by behavior means...')
 
         scaling = np.sqrt(rectified_means)
@@ -61,18 +64,19 @@ class FatTailledBehaviorModel(GaussianBehaviorModel):
         self.behave_cov = np.matmul(np.diag(scaling), self.behave_cov)
 
     def behave_var(self):
-        return self.exp_fun( np.diagonal(self.behave_cov))
+        return self.exp_fun(np.diagonal(self.behave_cov))
 
-    def generate_customer(self,start_of_month):
+    def generate_customer(self, start_of_month):
         '''
         Given a mean and covariance matrix, the event rates for the customer are drawn from the multi-variate
         gaussian distribution.
         subtract 0.5 and set min at 0.5 per month, so there can be very low rates despite 0 (1) min in log normal sim
         :return: a Custoemr object
         '''
-        customer_rates=np.random.multivariate_normal(mean=self.log_means,cov=self.behave_cov)
-        customer_rates=self.exp_fun(customer_rates)
-        customer_rates = np.maximum(customer_rates-0.667,0.333)
-        new_customer= Customer(customer_rates,channel_name=self.version,start_of_month=start_of_month)
+        customer_rates = np.random.multivariate_normal(mean=self.log_means, cov=self.behave_cov)
+        # customer_rates=self.exp_fun(customer_rates)
+        customer_rates = np.maximum(self.exp_fun(customer_rates) - 0.667, 1)
+        # customer_rates = np.maximum(customer_rates-0.667,0.333)
+        new_customer = Customer(customer_rates, channel_name=self.version, start_of_month=start_of_month)
         # print(customer_rates)
         return new_customer

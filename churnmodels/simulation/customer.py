@@ -1,8 +1,8 @@
 
 from datetime import date, datetime, timedelta,time
 from dateutil import relativedelta
-from numpy import random
-from random import randrange, uniform
+#from numpy import random
+#from random import randrange, uniform
 import numpy as np
 
 
@@ -30,10 +30,10 @@ class Customer:
         self.channel=channel_name
 
         if start_of_month:
-            self.age=random.uniform(Customer.MIN_AGE,Customer.MAX_AGE)
+            self.age=np.random.uniform(Customer.MIN_AGE,Customer.MAX_AGE)
             self.date_of_birth = start_of_month + relativedelta.relativedelta(years=-int(self.age),
                                                                               months=-int( (self.age % 1)*12 ),
-                                                                              days=-random.uniform(1,30))
+                                                                              days=-np.random.uniform(1,30))
         else:
             self.date_of_birth=None
 
@@ -42,7 +42,7 @@ class Customer:
 
         if satisfaction is None:
             age_contrib = 0.5* (Customer.AVG_AGE - self.age)/Customer.AGE_RANGE
-            self.satisfaction_propensity = np.power(2.0, random.uniform(-1.5, 1.5) + age_contrib)
+            self.satisfaction_propensity = np.power(2.0, np.random.uniform(-1.5, 1.5) + age_contrib)
         else:
             self.satisfaction_propensity = satisfaction
         self.subscriptions=[]
@@ -74,15 +74,16 @@ class Customer:
                 multiplier = Customer.date_multipliers[the_date]
             else:
                 if the_date.weekday() >= 4:
-                    multiplier = random.uniform(1.00,1.2)
+                    multiplier = np.random.uniform(1.00,1.2)
                 else:
-                    multiplier = random.uniform(0.825,1.025)
+                    multiplier = np.random.uniform(0.825,1.025)
                 Customer.date_multipliers[the_date]=multiplier
             for event_idx,rate in  enumerate(self.behave_per_day):
-                new_count= int(round(multiplier*random.poisson(rate)))
+                new_count= int(round(multiplier*np.random.poisson(rate)))
                 counts[event_idx] += new_count
                 for n in range(0,new_count):
-                    event_time=datetime.combine(the_date,time(randrange(24),randrange(60),randrange(60)))
+                    # event_time=datetime.combine(the_date,time(randrange(24),randrange(60),randrange(60)))
+                    event_time=datetime.combine(the_date,time(np.random.randint(24),np.random.randint(60),np.random.randint(60)))
                     new_event=(event_time,event_idx)
                     events.append(new_event )
 
