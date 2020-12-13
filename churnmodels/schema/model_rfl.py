@@ -40,6 +40,14 @@ def get_db_uri(options, dialect="sqlite"):
 
 
 def get_schema(options):
+    """
+    return the dynamical loaded schema module cotaining wrapper classes of the DB tables
+    :param options:
+        dict containing user, pass, dbname, schema, host, port
+    :type options:
+    :return:
+    :rtype:
+    """
     module = None
     tmp = tempfile.NamedTemporaryFile(mode="w+t", delete=False, suffix=".py")
     text = _howto_do_it(options)
