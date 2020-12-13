@@ -23,8 +23,6 @@ from churnmodels.simulation.churnsim import ChurnSimulation as ChurnSimulationBa
 from churnmodels.conf import folder as conf_folder
 
 
-
-
 class ChurnSimulation(ChurnSimulationBase):
 
     def __init__(self, model, start, end, init_customers, seed, engine, schema=None):
@@ -141,17 +139,17 @@ class ChurnSimulation(ChurnSimulationBase):
         total_events = sum(x.delta_events for x in customers_sim)
         self.subscription_count += total_subscriptions
 
-        options = {"product": self.model_name, "bill_period_months": 1}
-        assign_customer_pre(customers_sim, self.engine, self.schema, options=options)
+        options = {"schema": self.schema, "product": self.model_name, "bill_period_months": 1}
+        assign_customer_pre(customers_sim, self.engine, options=options)
 
 
-def assign_customer_pre(customers, engine, schema, options):
+def assign_customer_pre(customers, engine, options):
     """
     Putting the simulated data into the database
     customers are completely stored in an array of Python objects
 
     :param customers:
-    :type customers: array of Customer
+    :type
     :param engine:
     :type engine:
     :param options:
@@ -220,7 +218,16 @@ def assign_customer_pre(customers, engine, schema, options):
 
     # accounts
     df.index = pd.RangeIndex(maxidx + 1, maxidx + 1 + len(df.index))
-    df.to_sql("account", engine, schema=schema, if_exists="append", index=False)
+
+    db_opts = {
+        "if_exists": "append",
+        "index": False
+    }
+    print(options)
+    if options["schema"] is not None:
+        db_opts["schema"] = options["schema"]
+    df.to_sql("account", engine, **db_opts)
+
     # subscriptions & events
     df_s = pd.DataFrame({
         'account_id': pd.Series([], dtype='int'),
@@ -237,10 +244,14 @@ def assign_customer_pre(customers, engine, schema, options):
     df_e = df_e.append(df_e0, ignore_index=True)
     df_s.index = pd.RangeIndex(maxidxs + 1, maxidxs + 1 + len(df_s.index))
     df_e.index = pd.RangeIndex(maxidxe + 1, maxidxe + 1 + len(df_e.index))
+
     db_opts = {"index": False, "chunksize": 10000, "if_exists": "append"}
+    if options["schema"] is not None:
+        db_opts["schema"] = options["schema"]
+
     # storing into the DB (by the help of pandas)
-    df_s.to_sql("subscription", engine, schema=schema, **db_opts)
-    df_e.to_sql("event", engine, schema=schema, **db_opts)
+    df_s.to_sql("subscription", engine, **db_opts)
+    df_e.to_sql("event", engine, **db_opts)
     session.commit()
     return customers
 
@@ -270,6 +281,7 @@ def _beh_generate_customer(start_of_month, log_means, behave_cov, channel_name):
     new_customer = Customer(customer_rates, channel_name=channel_name, start_of_month=start_of_month)
     # print(customer_rates)
     return new_customer
+
 
 def get_engine():
     """
@@ -351,10 +363,14 @@ def simulate(options={}):
         "schema": schema,
     }
     for key, val in options.items():
+        # if key == "schema":
+        #     continue
         if key in parameters:
             parameters[key] = options[key]
     engine = setup_all(parameters["model"])
 
+    if os.getenv("CHURN_DB_DIALECT")=="sqlite":
+        del parameters["schema"]
     churn_sim = ChurnSimulation(engine=engine, **parameters)
     churn_sim.run_simulation()
 

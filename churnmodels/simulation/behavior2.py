@@ -1,9 +1,11 @@
 from .behavior import BehaviorModel, is_pos_def
 from .behavior import GaussianBehaviorModel as GaussianBehaviorModelBase
-from churnmodels.conf import folder as conf_folder
+# from churnmodels.conf import folder as conf_folder
 from churnmodels.simulation.customer import Customer
 import pandas as pd
 import numpy as np
+
+from .. import conf
 
 
 class GaussianBehaviorModel(GaussianBehaviorModelBase):
@@ -23,9 +25,13 @@ class GaussianBehaviorModel(GaussianBehaviorModelBase):
         self.name = name
         self.version = version
         # model_path='../conf/'+name + '_' + version + '.csv'
-        model_path = conf_folder + '/' + name + '_' + version + '.csv'
-        model = pd.read_csv(model_path)
-        model.set_index(['behavior'], inplace=True)
+        # model_path = conf_folder + '/' + name + '_' + version + '.csv'
+        # model = pd.read_csv(model_path)
+        # model.set_index(['behavior'], inplace=True)
+
+        model = conf.getcsv(name, version)
+        model = model.set_index(model.columns[0])
+
         self.behave_means = model['mean']
         self.behave_names = model.index.values
         self.behave_cov = model[self.behave_names]

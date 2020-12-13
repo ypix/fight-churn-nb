@@ -1,7 +1,7 @@
 from sqlalchemy import func, or_
 from sqlalchemy.orm import sessionmaker
 
-from churnmodels import Subscription
+from churnmodels.schema import Subscription
 from churnmodels.simulation.churnsim2 import get_engine
 import pandas as pd
 

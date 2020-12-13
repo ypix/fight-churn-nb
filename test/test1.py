@@ -1,12 +1,13 @@
 from datetime import date, timedelta
-import os
 import numpy as np
-from churnmodels.simulation.utility2 import UtilityModel
-
-from churnmodels.simulation.behavior2 import FatTailledBehaviorModel
-
 from dateutil.relativedelta import relativedelta
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import pandas as pd
 
+from churnmodels.schema import get_schema, get_db_uri
+from churnmodels.simulation.utility2 import UtilityModel
+from churnmodels.simulation.behavior2 import FatTailledBehaviorModel
 from churnmodels.simulation import simulate, Customer
 from churnmodels import conf
 
@@ -50,6 +51,12 @@ def simulate_customer(start_of_month, plans, model_list, population_percents, co
 
 
 def test1():
+    """
+    creating an sqlite data base with simulation data
+    Depending on the environment variables the data base will be created
+    :return:
+    :rtype:
+    """
     model = "biznet1"
     options = {
         "model": model,
@@ -121,6 +128,29 @@ def test2():
     pass
 
 
+def test3():
+    """
+    Example for accessing postgres DB with refelction
+    :return:
+    :rtype:
+    """
+    options = {"user": "postgres",
+               "pass": "password",
+               "dbname": "churn",
+               "schema": "biznet1"
+               }
+    tables=get_schema(options)
+    db_uri=get_db_uri(options, "postgres")
+    engine=create_engine(db_uri)
+    session = sessionmaker(bind=engine)()
+
+    q=session.query(tables.Account)
+    df=pd.read_sql_query(q.statement, engine)
+    print(df)
+    pass
+
+
 if __name__ == '__main__':
-    # test1()
-    test2()
+    test1()
+    # test2()
+    # test3()
