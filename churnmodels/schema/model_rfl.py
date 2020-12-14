@@ -72,6 +72,7 @@ def get_schema(options):
     return module
 
 
+
 def _howto_do_it(options):
     user = get_or_default(options, "user", "postgres")
     pw = get_or_default(options, "pass", "password")
