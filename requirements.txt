@@ -6,6 +6,8 @@ pandas
 sqlalchemy
 tqdm
 postgresql
+matplotlib
+seaborn
 
 # this package needs to be installed with pip
 #  pip install postgres
