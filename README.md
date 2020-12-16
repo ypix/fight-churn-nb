@@ -6,21 +6,33 @@ This repository contains Python code on the book
 The repository refers to the original code on github
 * https://github.com/carl24k/fight-churn
 
-The creation of simulation data on churn behavior is implemented by means of the following pPython libraries:
+This repository was created against the background that the 
+above mentioned book depends on a Postgres DB installation. 
+Here, a SQLite DB was used as an alternative, which, 
+being file-based, is easier to use. 
+In addition, the Jupyter environment was chosen, 
+which allows experimental single steps to be taken 
+and intermediate results to be viewed graphically.
+
+The creation of simulation data on churn behavior 
+is implemented by means of the following pPython libraries:
 * SQLAlchemy
 * pandas
 * jupyter
 
-It is further shown how to store the data into a SQLite or Postgres data base.
-
 ## Prerequisites
-### Creating a python environment (anaconda)
+Prerequisties like creating a python environment with anaconda, 
+creating and installing the churnmodels package
+and running the simulation are described in a jupyter notebook:
+* [schema handling for DBs](listings/chap01/jup_chap01_regarding-db-schemas.ipynb)
+* [install package and simulate data](listings/chap01/jup_chap01_simulation.ipynb)
 
-Create an anaconda environment by running the following command in Anaconda PowerShell or DOS Terminal.
-> conda create -n fightchurn --file requirements.txt  
+## Tests
+The repository has been tested for the data bases SQLite (v3.33) and Postgres (v4).
+Be aware that the usage of SQLAlchemy does not gaarantee, that a switch of a data base 
+may cause problems in running the python codes.
 
-More details can befound in the jupyter notebook in listings/chap1
-and listings/chap2
+
 
 
 

@@ -1,5 +1,19 @@
 import os
 import sys
+import pandas as pd
+
+# alternative to the interval functionality in postgres is to create a tempory table that can be joined to
+from datetime import timedelta
+def make_day_interval(d_start_date, d_end_date, periods, freq_str):
+    # we let pandas do find the starting date which is
+    # new-start-date = start-date - (periods * frequency)
+    seq=pd.date_range(d_start_date, periods=periods+1, freq=f"-{freq_str}")
+    new_start_date=seq[-1]
+    end_dates=pd.date_range(d_start_date, d_end_date, freq=freq_str)
+    start_dates=pd.date_range(new_start_date, periods=len(end_dates), freq=freq_str)
+    df=pd.DataFrame({"start_date":start_dates,"end_date":end_dates})
+    df.index.rename("id")
+    return df
 
 
 
