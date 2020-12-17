@@ -29,7 +29,7 @@ class GaussianBehaviorModel(GaussianBehaviorModelBase):
         # model = pd.read_csv(model_path)
         # model.set_index(['behavior'], inplace=True)
 
-        model = conf.getcsv(name, version)
+        model = conf.get_csv(name, version)
         model = model.set_index(model.columns[0])
 
         self.behave_means = model['mean']

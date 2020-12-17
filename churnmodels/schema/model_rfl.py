@@ -64,9 +64,12 @@ def get_schema(options):
         #     print(key)
     finally:
         tmp.close()  # deletes the file
-        os.remove(tmp.name)
-        # we protect the user: some py files could contain user password informations
-        shutil.rmtree(f"{somedir}/__pycache__")
+        try:
+            os.remove(tmp.name)
+            # we protect the user: some py files could contain user password informations
+            shutil.rmtree(f"{somedir}/__pycache__")
+        except:
+            pass
 
     sys.path = hold_path
     return module
@@ -95,7 +98,9 @@ def _howto_do_it(options):
     start_text += f"\nBase.metadata.schema = '{schema}'"
     # start_text += f"\nprint(Base.__dict__)"
     for table in meta.tables.values():
-        classname = camelCase(table.name)
+        tblname=table.name
+        tblname=tblname.split(".")[-1]
+        classname = camelCase(tblname)
         new_table_class = f"class {classname}(Base):"
         new_table_class += f"\n\t__table__ = Table('{table.name}', Base.metadata, autoload=True)"
         # new_table_class += f"\n\t__table_args__ = {{'schema': '{schema}', 'autoload': True}}"

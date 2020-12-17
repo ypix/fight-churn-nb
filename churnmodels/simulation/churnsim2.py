@@ -223,7 +223,7 @@ def assign_customer_pre(customers, engine, options):
         "if_exists": "append",
         "index": False
     }
-    print(options)
+    #print(options)
     if options["schema"] is not None:
         db_opts["schema"] = options["schema"]
     df.to_sql("account", engine, **db_opts)

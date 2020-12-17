@@ -87,7 +87,7 @@ def test2():
     }
     np.random.seed(seed)
 
-    model_files = conf.getmodel(model_name)
+    model_files = conf.get_model(model_name)
     behavior_models = {}
     model_list = []
     behave_versions = [value for value in model_files.keys()

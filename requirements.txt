@@ -8,6 +8,8 @@ tqdm
 postgresql
 matplotlib
 seaborn
+sqlparse
 
 # this package needs to be installed with pip
 #  pip install postgres
+#  pip install sqlparse

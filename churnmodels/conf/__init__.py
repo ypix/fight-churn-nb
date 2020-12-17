@@ -6,16 +6,16 @@ import pandas as pd
 folder = os.path.dirname(os.path.abspath(__file__))
 
 
-def getmodel(model_name) -> dict:
+def get_model(model_name) -> dict:
     """
     retruns a dictionary of all model (csv) files belongig to the model "model"
     :param model_name:
     :return:
     """
-    conf_files = getfiles(model_name)
+    conf_files = get_files(model_name)
     res = {}
     for version, filename in conf_files.items():
-        df = getcsv(model_name, version)
+        df = get_csv(model_name, version)
         df = df.set_index(df.columns[0])
         res[version] = {}
         res[version]["data"] = df
@@ -23,7 +23,7 @@ def getmodel(model_name) -> dict:
     return res
 
 
-def getcsv(model_name, channel):
+def get_csv(model_name, channel):
     filename = f"{folder}/{model_name}_{channel}.csv"
     if not os.path.exists(filename):
         print(f"Could not find file {filename}")
@@ -31,7 +31,7 @@ def getcsv(model_name, channel):
     return df
 
 
-def getfiles(model_name):
+def get_files(model_name):
     pattern = f"{folder}/{model_name}_*.csv"
     nn = len(f"{folder}/{model_name}_")
     erg = {}
