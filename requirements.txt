@@ -1,5 +1,5 @@
 
-python==3.8.0
+python==3.8.*
 jupyterlab
 numpy
 pandas
@@ -11,5 +11,4 @@ seaborn
 sqlparse
 
 # this package needs to be installed with pip
-#  pip install postgres
-#  pip install sqlparse
+#  pip install postgres sqlparse

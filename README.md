@@ -24,8 +24,8 @@ is implemented by means of the following pPython libraries:
 Prerequisties like creating a python environment with anaconda, 
 creating and installing the churnmodels package
 and running the simulation are described in a jupyter notebook:
-* [schema handling for DBs](listings/chap01/jup_chap01_regarding-db-schemas.ipynb)
-* [install package and simulate data](listings/chap01/jup_chap01_simulation.ipynb)
+* [schema handling for DBs](listings/part0/jup_chap01_regarding-db-schemas.ipynb)
+* [install package and simulate data](listings/part0/jup_chap01_simulation.ipynb)
 
 ## Tests
 The repository has been tested for the data bases SQLite (v3.33) and Postgres (v4).
