@@ -3,7 +3,11 @@ import sys
 import pandas as pd
 
 # alternative to the interval functionality in postgres is to create a tempory table that can be joined to
-from datetime import timedelta
+from datetime import timedelta, datetime
+
+import sqlparse
+
+
 def make_day_interval(d_start_date, d_end_date, periods, freq_str):
     # we let pandas do find the starting date which is
     # new-start-date = start-date - (periods * frequency)
@@ -89,3 +93,16 @@ def progressBar(iteration, total, prefix='', suffix='', decimals=1, bar_length=1
     if iteration == total:
         sys.stdout.write('\n')
     sys.stdout.flush()
+
+
+def days_between(d1, d2):
+    d1 = datetime.strptime(d1, "%Y-%m-%d")
+    d2 = datetime.strptime(d2, "%Y-%m-%d")
+    return abs((d2 - d1).days)
+
+def pretty_sql(engine, q1):
+    # debug: looking at the SQL pretty printed
+    text1=str(q1.statement.compile(engine, compile_kwargs={"literal_binds": True}))
+    text2=sqlparse.format(text1, reindent=True, keyword_case='upper')
+    return text2
+    #print(text2)

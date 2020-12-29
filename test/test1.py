@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import pandas as pd
 
-from churnmodels.schema import get_schema, get_db_uri
+from churnmodels.schema import get_schema_rfl, get_db_uri
 from churnmodels.simulation.utility2 import UtilityModel
 from churnmodels.simulation.behavior2 import FatTailledBehaviorModel
 from churnmodels.simulation import simulate, Customer
@@ -139,7 +139,7 @@ def test3():
                "dbname": "churn",
                "schema": "biznet1"
                }
-    tables=get_schema(options)
+    tables=get_schema_rfl(options)
     db_uri=get_db_uri(options, "postgres")
     engine=create_engine(db_uri)
     session = sessionmaker(bind=engine)()

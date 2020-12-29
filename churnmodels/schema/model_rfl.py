@@ -25,11 +25,10 @@ def get_or_default(dict, key, alternative=None):
 def get_db_uri(options, dialect="sqlite"):
     database_uri = f"<Error: SQL dialect '{dialect}' not implemented>"
     if dialect == "sqlite":
-        database_uri = f"{dialect}:///:memory:"
-        sqlitefile = get_or_default(options, "filename")
-        if sqlitefile is not None:
-            database_uri = f"{dialect}:///{sqlitefile}"
-    elif dialect == "postgres":
+        sqlitefile = get_or_default(options, "filename", ":memory:")
+        sqlitefile = get_or_default(options, "file", sqlitefile)
+        database_uri = f"{dialect}:///{sqlitefile}"
+    elif dialect in ["postgres", "postgresql"]:
         user = get_or_default(options, "user", "postgres")
         pw = get_or_default(options, "pass", "password")
         dbname = get_or_default(options, "dbname", "churn")
@@ -39,7 +38,7 @@ def get_db_uri(options, dialect="sqlite"):
     return database_uri
 
 
-def get_schema(options):
+def get_schema_rfl(options):
     """
     return the dynamical loaded schema module cotaining wrapper classes of the DB tables
     :param options:
@@ -50,7 +49,13 @@ def get_schema(options):
     """
     module = None
     tmp = tempfile.NamedTemporaryFile(mode="w+t", delete=False, suffix=".py")
-    text = _howto_do_it(options)
+    dialect = get_or_default(options, "dialect", "sqlite")
+
+    if dialect in ["postgres", "postgresql"]:
+        text = _howto_do_it(options)
+    else:
+        sqlitefile = get_or_default(options, "file", ":memory:")
+        text = _howto_do_it_def(sqlitefile)
 
     somedir = os.path.dirname(tmp.name)
     module_name = os.path.basename(tmp.name)[:-3]
@@ -76,6 +81,16 @@ def get_schema(options):
 
 
 
+def _howto_do_it_def(sqlitefile):
+
+    database_uri = f"sqlite:///{sqlitefile}"
+    engine = create_engine(database_uri)
+
+    meta = MetaData()
+    meta.reflect(bind=engine)
+    database_uri=f"\ndatabase_uri = \"sqlite:///{sqlitefile}\""
+    return _create_py_script(meta, database_uri)
+
 def _howto_do_it(options):
     user = get_or_default(options, "user", "postgres")
     pw = get_or_default(options, "pass", "password")
@@ -89,25 +104,29 @@ def _howto_do_it(options):
 
     meta = MetaData()
     meta.reflect(bind=engine, schema=schema)
+    database_uri2=f"\ndatabase_uri = \"postgresql://{user}:{pw}@{host}:{port}/{dbname}\""
+    return _create_py_script(meta, database_uri2, schema)
+
+
+def _create_py_script(meta, database_uri, schema=None):
     start_text = ""
     start_text += f"\nfrom sqlalchemy import MetaData, create_engine, Table"
     start_text += f"\nfrom sqlalchemy.ext.declarative import declarative_base"
-    start_text += f"\ndatabase_uri = \"postgresql://{user}:{pw}@{host}:{port}/{dbname}\""
+    start_text += database_uri
     start_text += f"\nengine = create_engine(database_uri)"
     start_text += f"\nBase = declarative_base(bind=engine)"
-    start_text += f"\nBase.metadata.schema = '{schema}'"
+    if schema is not None:
+        start_text += f"\nBase.metadata.schema = '{schema}'"
     # start_text += f"\nprint(Base.__dict__)"
     for table in meta.tables.values():
-        tblname=table.name
-        tblname=tblname.split(".")[-1]
+        tblname = table.name
+        tblname = tblname.split(".")[-1]
         classname = camelCase(tblname)
         new_table_class = f"class {classname}(Base):"
         new_table_class += f"\n\t__table__ = Table('{table.name}', Base.metadata, autoload=True)"
         # new_table_class += f"\n\t__table_args__ = {{'schema': '{schema}', 'autoload': True}}"
         start_text += f"\n\n{new_table_class}"
     start_text += "\n"
-
     # print(start_text)
-
     # exec(start_text)
     return start_text
